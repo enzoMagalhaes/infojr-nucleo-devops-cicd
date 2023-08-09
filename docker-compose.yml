@@ -1,0 +1,20 @@
+version: '3'
+services:
+  api:
+    image: example-api:latest
+    build:
+      context: ./src/api
+      dockerfile: Dockerfile
+    ports:
+      - 3000:3000
+    env_file:
+      - ./src/api/.env
+  client:
+    image: example-client:latest
+    build:
+      context: ./src/client
+      dockerfile: Dockerfile
+    ports:
+      - 5000:5000
+    env_file:
+      - ./src/client/.env

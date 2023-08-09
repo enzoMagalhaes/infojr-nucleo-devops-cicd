@@ -60,8 +60,8 @@ jobs:
           TF_VAR_region: ${{ secrets.TF_VAR_region }}
           TF_VAR_zone: ${{ secrets.TF_VAR_zone }}
           TF_VAR_repository_name: ${{ env.IMAGE_FOLDER }}
-          TF_VAR_bucket_name: ${{secrets.TF_VAR_BUCKET_NAME}}
-          TF_VAR_bucket_location: ${{secrets.TF_VAR_BUCKET_LOCATION}}
+          TF_VAR_bucket_name: ${{secrets.GCS_BUCKET_NAME}}
+          TF_VAR_bucket_location: ${{secrets.GCS_BUCKET_LOCATION}}
 
   publish_app_container_to_gcp:
     name: build container and push to GCP

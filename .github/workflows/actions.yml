@@ -108,7 +108,7 @@ jobs:
 
 
   publish_API_container_to_cloud_run:
-    needs: push_containers_to_artifacy_registry
+    needs: push_containers_to_artifact_registry
     name: build container and push to GCP
     runs-on: ubuntu-latest
     steps:

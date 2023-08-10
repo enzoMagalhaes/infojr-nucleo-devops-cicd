@@ -64,8 +64,8 @@ jobs:
           TF_VAR_bucket_name: ${{ secrets.GCS_BUCKET_NAME }}
           TF_VAR_bucket_location: ${{ secrets.GCS_BUCKET_LOCATION }}
 
-  publish_app_containers_to_cloud_run:
-    name: build container and push to GCP
+  push_containers_to_artifacy_registry:
+    name: push containers to artifact registry
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -79,14 +79,11 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
 
-      - name: Build API Docker Image
-        run: docker build -t $API_IMAGE_NAME:latest ./src/api
-
-      - name: Build Client Docker Image
-        run: docker build -t $CLIENT_IMAGE_NAME:latest ./src/client
-
       - name: Configure Docker Client
         run: gcloud auth configure-docker us-east1-docker.pkg.dev #without setting up configure docker for the specific region that you want to deploy the image, both artifact registry and cloud run throw authentication errors even with the auth@v1 action
+
+      - name: Build API Docker Image
+        run: docker build -t $API_IMAGE_NAME:latest ./src/api
 
       - name: Push API Docker Image to Artifact Registry
         env:
@@ -97,6 +94,9 @@ jobs:
           docker push us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/$IMAGES_FOLDER/$API_IMAGE_NAME:latest
           docker push us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/$IMAGES_FOLDER/$API_IMAGE_NAME:$GIT_TAG
 
+      - name: Build Client Docker Image
+        run: docker build -t $CLIENT_IMAGE_NAME:latest ./src/client
+
       - name: Push Client Docker Image to Artifact Registry
         env:
           GIT_TAG: v0.1.0
@@ -106,11 +106,42 @@ jobs:
           docker push us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/$IMAGES_FOLDER/$CLIENT_IMAGE_NAME:latest
           docker push us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/$IMAGES_FOLDER/$CLIENT_IMAGE_NAME:$GIT_TAG
 
+
+  publish_API_container_to_cloud_run:
+    name: build container and push to GCP
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: "${{ secrets.GOOGLE_CREDENTIALS }}"
+
+      - name: Configure Docker Client
+        run: gcloud auth configure-docker us-east1-docker.pkg.dev #without setting up configure docker for the specific region that you want to deploy the image, both artifact registry and cloud run throw authentication errors even with the auth@v1 action
+
       - name: Deploy API image to Cloud Run
         uses: "google-github-actions/deploy-cloudrun@v1"
         with:
           service: ${{ env.API_IMAGE_NAME }}
           image: us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/${{ env.IMAGES_FOLDER }}/${{ env.API_IMAGE_NAME }}:latest
+
+  publish_client_container_to_cloud_run:
+    name: build container and push to GCP
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: "${{ secrets.GOOGLE_CREDENTIALS }}"
+
+      - name: Configure Docker Client
+        run: gcloud auth configure-docker us-east1-docker.pkg.dev #without setting up configure docker for the specific region that you want to deploy the image, both artifact registry and cloud run throw authentication errors even with the auth@v1 action
 
       - name: Deploy Client image to Cloud Run
         uses: "google-github-actions/deploy-cloudrun@v1"

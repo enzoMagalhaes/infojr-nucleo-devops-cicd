@@ -64,7 +64,7 @@ jobs:
           TF_VAR_bucket_name: ${{ secrets.GCS_BUCKET_NAME }}
           TF_VAR_bucket_location: ${{ secrets.GCS_BUCKET_LOCATION }}
 
-  push_containers_to_artifacy_registry:
+  push_containers_to_artifact_registry:
     name: push containers to artifact registry
     runs-on: ubuntu-latest
     steps:
@@ -108,6 +108,7 @@ jobs:
 
 
   publish_API_container_to_cloud_run:
+    needs: push_containers_to_artifacy_registry
     name: build container and push to GCP
     runs-on: ubuntu-latest
     steps:
@@ -127,8 +128,11 @@ jobs:
         with:
           service: ${{ env.API_IMAGE_NAME }}
           image: us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/${{ env.IMAGES_FOLDER }}/${{ env.API_IMAGE_NAME }}:latest
+          env_vars: |
+            PORT=8080
 
-  publish_client_container_to_cloud_run:
+  publish_Client_container_to_cloud_run:
+    needs: push_containers_to_artifacy_registry
     name: build container and push to GCP
     runs-on: ubuntu-latest
     steps:
@@ -140,6 +144,16 @@ jobs:
         with:
           credentials_json: "${{ secrets.GOOGLE_CREDENTIALS }}"
 
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+
+      - name: Get Cloud Run API Service URL
+        id: get_service_url
+        run: |
+          service_name=$API_IMAGE_NAME
+          service_url=$(gcloud run services describe "$API_IMAGE_NAME" --format "value(status.url)")
+          echo "::set-output name=service_url::$service_url"
+
       - name: Configure Docker Client
         run: gcloud auth configure-docker us-east1-docker.pkg.dev #without setting up configure docker for the specific region that you want to deploy the image, both artifact registry and cloud run throw authentication errors even with the auth@v1 action
 
@@ -148,3 +162,6 @@ jobs:
         with:
           service: ${{ env.CLIENT_IMAGE_NAME }}
           image: us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/${{ env.IMAGES_FOLDER }}/${{ env.CLIENT_IMAGE_NAME }}:latest
+          env_vars: |
+            PORT=8080
+            API_URL=${{ steps.get_service_url.outputs.service_url }}

@@ -3,7 +3,7 @@ import axios, { AxiosResponse } from "axios";
 
 const api_url: string = process.env.API_URL
   ? process.env.API_URL
-  : "http://localhost:3000";
+  : "http://localhost:8080";
 
 function App(): JSX.Element {
   const [message, setMessage] = useState<string>("Loading...");

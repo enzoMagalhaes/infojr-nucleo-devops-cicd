@@ -20,10 +20,10 @@ jobs:
 
       - name: setup Terraform
         uses: hashicorp/setup-terraform@v2
-        
+
       - name: Terraform init
         working-directory: ./terraform
-        run: terraform init
+        run: terraform init -backend-config=backend.conf
         env:
           GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
           # these TF_VAR_<var_name> can be accessed on terraform by var.<var name>

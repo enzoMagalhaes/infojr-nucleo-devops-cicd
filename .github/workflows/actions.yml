@@ -20,19 +20,7 @@ jobs:
 
       - name: setup Terraform
         uses: hashicorp/setup-terraform@v2
-
-      - name: Setup Terraform Backend
-        id: backend
-        run: |
-          cat > backend.tf << EOF
-          terraform {
-            backend "gcs" {
-              bucket = "${{ secrets.GCS_BUCKET_NAME }}"
-              prefix = "terraform/state"
-            }
-          }
-          EOF
-
+        
       - name: Terraform init
         working-directory: ./terraform
         run: terraform init

@@ -7,8 +7,9 @@ on:
       - dev
 
 env:
-  IMAGE_NAME: example-api
-  IMAGE_FOLDER: images
+  API_IMAGE_NAME: example-api
+  CLIENT_IMAGE_NAME: example-client
+  IMAGES_FOLDER: images
 
 jobs:
   provision_infraestructure:
@@ -43,7 +44,7 @@ jobs:
           TF_VAR_project: ${{ secrets.TF_VAR_project }}
           TF_VAR_region: ${{ secrets.TF_VAR_region }}
           TF_VAR_zone: ${{ secrets.TF_VAR_zone }}
-          TF_VAR_repository_name: ${{ env.IMAGE_FOLDER }}
+          TF_VAR_repository_name: ${{ env.IMAGES_FOLDER }}
           TF_VAR_bucket_name: ${{ secrets.GCS_BUCKET_NAME }}
           TF_VAR_bucket_location: ${{ secrets.GCS_BUCKET_LOCATION }}
 
@@ -59,11 +60,11 @@ jobs:
           TF_VAR_project: ${{ secrets.TF_VAR_project }}
           TF_VAR_region: ${{ secrets.TF_VAR_region }}
           TF_VAR_zone: ${{ secrets.TF_VAR_zone }}
-          TF_VAR_repository_name: ${{ env.IMAGE_FOLDER }}
+          TF_VAR_repository_name: ${{ env.IMAGES_FOLDER }}
           TF_VAR_bucket_name: ${{ secrets.GCS_BUCKET_NAME }}
           TF_VAR_bucket_location: ${{ secrets.GCS_BUCKET_LOCATION }}
 
-  publish_app_container_to_gcp:
+  publish_app_containers_to_cloud_run:
     name: build container and push to GCP
     runs-on: ubuntu-latest
     steps:
@@ -78,24 +79,41 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
 
-      - name: Build Docker Image
-        run: docker build -t $IMAGE_NAME:latest ./src/api
+      - name: Build API Docker Image
+        run: docker build -t $API_IMAGE_NAME:latest ./src/api
+
+      - name: Build Client Docker Image
+        run: docker build -t $CLIENT_IMAGE_NAME:latest ./src/client
 
       - name: Configure Docker Client
         run: gcloud auth configure-docker us-east1-docker.pkg.dev #without setting up configure docker for the specific region that you want to deploy the image, both artifact registry and cloud run throw authentication errors even with the auth@v1 action
 
-      - name: Push Docker Image to Artifact Registry
+      - name: Push API Docker Image to Artifact Registry
         env:
           GIT_TAG: v0.1.0
-
         run: |-
-          docker tag $IMAGE_NAME:latest us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/$IMAGE_FOLDER/$IMAGE_NAME:latest 
-          docker tag $IMAGE_NAME:latest us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/$IMAGE_FOLDER/$IMAGE_NAME:$GIT_TAG
-          docker push us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/$IMAGE_FOLDER/$IMAGE_NAME:latest
-          docker push us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/$IMAGE_FOLDER/$IMAGE_NAME:$GIT_TAG
+          docker tag $API_IMAGE_NAME:latest us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/$IMAGES_FOLDER/$API_IMAGE_NAME:latest 
+          docker tag $API_IMAGE_NAME:latest us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/$IMAGES_FOLDER/$API_IMAGE_NAME:$GIT_TAG
+          docker push us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/$IMAGES_FOLDER/$API_IMAGE_NAME:latest
+          docker push us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/$IMAGES_FOLDER/$API_IMAGE_NAME:$GIT_TAG
 
-      - name: Deploy image to Cloud Run
+      - name: Push Client Docker Image to Artifact Registry
+        env:
+          GIT_TAG: v0.1.0
+        run: |-
+          docker tag $CLIENT_IMAGE_NAME:latest us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/$IMAGES_FOLDER/$CLIENT_IMAGE_NAME:latest 
+          docker tag $CLIENT_IMAGE_NAME:latest us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/$IMAGES_FOLDER/$CLIENT_IMAGE_NAME:$GIT_TAG
+          docker push us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/$IMAGES_FOLDER/$CLIENT_IMAGE_NAME:latest
+          docker push us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/$IMAGES_FOLDER/$CLIENT_IMAGE_NAME:$GIT_TAG
+
+      - name: Deploy API image to Cloud Run
         uses: "google-github-actions/deploy-cloudrun@v1"
         with:
-          service: ${{ env.IMAGE_NAME }}
-          image: us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/${{ env.IMAGE_FOLDER }}/${{ env.IMAGE_NAME }}:latest
+          service: ${{ env.API_IMAGE_NAME }}
+          image: us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/${{ env.IMAGES_FOLDER }}/${{ env.API_IMAGE_NAME }}:latest
+
+      - name: Deploy Client image to Cloud Run
+        uses: "google-github-actions/deploy-cloudrun@v1"
+        with:
+          service: ${{ env.CLIENT_IMAGE_NAME }}
+          image: us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/${{ env.IMAGES_FOLDER }}/${{ env.CLIENT_IMAGE_NAME }}:latest

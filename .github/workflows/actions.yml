@@ -21,9 +21,21 @@ jobs:
       - name: setup Terraform
         uses: hashicorp/setup-terraform@v2
 
+      - name: Setup Terraform Backend
+        id: backend
+        run: |
+          cat > backend.tf << EOF
+          terraform {
+            backend "gcs" {
+              bucket = "${{ secrets.GCS_BUCKET_NAME }}"
+              prefix = "terraform/state"
+            }
+          }
+          EOF
+
       - name: Terraform init
         working-directory: ./terraform
-        run: terraform init -backend-config=backend.conf
+        run: terraform init
         env:
           GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
           # these TF_VAR_<var_name> can be accessed on terraform by var.<var name>

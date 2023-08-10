@@ -106,10 +106,9 @@ jobs:
           docker push us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/$IMAGES_FOLDER/$CLIENT_IMAGE_NAME:latest
           docker push us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/$IMAGES_FOLDER/$CLIENT_IMAGE_NAME:$GIT_TAG
 
-
   publish_API_container_to_cloud_run:
     needs: push_containers_to_artifact_registry
-    name: build container and push to GCP
+    name: build API image and push to GCP
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -131,7 +130,7 @@ jobs:
 
   publish_Client_container_to_cloud_run:
     needs: publish_API_container_to_cloud_run
-    name: build container and push to GCP
+    name: build Client image and push to GCP
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -149,7 +148,7 @@ jobs:
         id: get_service_url
         run: |
           service_name=$API_IMAGE_NAME
-          service_url=$(gcloud run services describe "$API_IMAGE_NAME" --format "value(status.url)")
+          service_url=$(gcloud run services describe "$API_IMAGE_NAME" --region us-central1 --format "value(status.url)")
           echo "::set-output name=service_url::$service_url"
 
       - name: Configure Docker Client

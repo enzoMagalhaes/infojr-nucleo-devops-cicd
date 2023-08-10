@@ -128,11 +128,9 @@ jobs:
         with:
           service: ${{ env.API_IMAGE_NAME }}
           image: us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/${{ env.IMAGES_FOLDER }}/${{ env.API_IMAGE_NAME }}:latest
-          env_vars: |
-            PORT=8080
 
   publish_Client_container_to_cloud_run:
-    needs: push_containers_to_artifact_registry
+    needs: publish_API_container_to_cloud_run
     name: build container and push to GCP
     runs-on: ubuntu-latest
     steps:
@@ -163,5 +161,4 @@ jobs:
           service: ${{ env.CLIENT_IMAGE_NAME }}
           image: us-east1-docker.pkg.dev/${{secrets.TF_VAR_project}}/${{ env.IMAGES_FOLDER }}/${{ env.CLIENT_IMAGE_NAME }}:latest
           env_vars: |
-            PORT=8080
             API_URL=${{ steps.get_service_url.outputs.service_url }}

@@ -1,4 +1,4 @@
-name: Setup infraestructure and push docker img to Artifact Registry
+name: Setup infraestructure, push app images to Artifact Registry and Publish to Cloud Run
 
 on:
   push:
@@ -108,7 +108,7 @@ jobs:
 
   publish_API_container_to_cloud_run:
     needs: push_containers_to_artifact_registry
-    name: build API image and push to GCP
+    name: Push API image from artifact registry to Cloud Run
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
@@ -130,7 +130,7 @@ jobs:
 
   publish_Client_container_to_cloud_run:
     needs: publish_API_container_to_cloud_run
-    name: build Client image and push to GCP
+    name: Push Client image from artifact registry to Cloud Run
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
